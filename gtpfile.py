@@ -21,6 +21,7 @@ class GTPNote:
 class GTPBeat:
     def __init__(self):
         self.notes = []
+        self.dotted = False
 
     def note_at_string(self, string):
         """

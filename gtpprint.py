@@ -19,13 +19,14 @@ def print_string_in_bar(bar, string, min_duration):
     result = "--"
     for i, beat in enumerate(bar.beats):
         duration_delta = min_duration - beat.duration
-        extra_dashes = 2 ** duration_delta
+        total_dashes = 2 ** (duration_delta+1)
+        if beat.dotted: total_dashes += total_dashes/2
         note = beat.note_at_string(string)
-        if note and note.fret is not None:
+        if note and note.fret is not None and note.alteration == 1:
             result += "%d" % note.fret + effect_character(note, bar, i, string)
         else:
             result += "--"
-        if duration_delta: result += "-" * extra_dashes
+        result += "-" * (total_dashes-2)
     print result
 
 def print_bar(track, bar, min_duration=None):
