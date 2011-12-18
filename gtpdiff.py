@@ -1,0 +1,62 @@
+from gtpfile import *
+from gtpprint import *
+import sys
+
+class GTPTrackComparator:
+    def __init__(self, track1, track2):
+        self.track1 = track1
+        self.track2 = track2
+
+    def notes_equal(self, note1, note2):
+        if note1.fret != note2.fret or note1.string != note2.string or note1.duration != note2.duration:
+            return False
+        return True
+
+    def beats_equal(self, beat1, beat2):
+        if len(beat1.notes) != len(beat2.notes):
+            return False
+        for note1, note2 in zip(beat1.notes, beat2.notes):
+            if not self.notes_equal(note1, note2): return False
+        return True
+
+    def bars_equal(self, bar1, bar2):
+        if len(bar1.beats) != len(bar2.beats):
+            return False
+        for b1, b2 in zip(bar1.beats, bar2.beats):
+            if not self.beats_equal(b1, b2): return False
+        return True
+
+    def compare_tracks(self):
+        for i in range(len(self.track1.bars)):
+            bar1 = self.track1.bars[i]
+            bar2 = self.track2.bars[i]
+            if not self.bars_equal(bar1, bar2):
+                yield i+1, bar1, bar2
+
+
+f1 = open(sys.argv[1], "rb")
+loader = loader_for_file(f1)
+gtp1 = loader.load(f1)
+
+f2 = open(sys.argv[2], "rb")
+loader = loader_for_file(f2)
+gtp2 = loader.load(f2)
+
+print "Tracks in f1:"
+for t in gtp1.tracks:
+    print t.name
+
+print "Tracks in f2:"
+for t2 in gtp2.tracks:
+    print t2.name
+
+track1 = gtp1.tracks[0]
+track2 = gtp2.tracks[0]
+comparator = GTPTrackComparator(track1, track2)
+for index, bar1, bar2 in comparator.compare_tracks():
+    print "Difference in bar %d" % index
+    shortest_beat = max(bar1.shortest_beat(), bar2.shortest_beat())
+    print_bar(track1, bar1, shortest_beat)
+    print ""
+    print_bar(track2, bar2, shortest_beat)
+    print ""
