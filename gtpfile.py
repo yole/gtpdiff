@@ -188,7 +188,7 @@ class GTPLoader:
         if beat_type & 16:
             self.load_mix_table_change(beat)
         strings = self.byte()
-        for string in range(8):
+        for string in range(7, -1, -1):
             if strings & (1 << string):
                 self.load_note(beat, track_strings-string)
 
@@ -202,8 +202,14 @@ class GTPLoader:
             beat.natural_harmonic = True
         if effect & 16:
             beat.fade_in = True
-        if (effect & 32) or (effect & 64):
+        if effect & 32:
+            self.load_effect32(beat)
+        if effect & 64:
             raise Exception("unsupported effect")
+
+    def load_effect32(self, beat):
+        unknown = self.byte()
+        tremolo_bar = self.long()
 
     def load_mix_table_change(self, beat):
         new_instrument = self.byte()
@@ -230,7 +236,9 @@ class GTPLoader:
             chord_name = self.long_string()
         diagram_top_fret = self.long()
         if diagram_top_fret:
-            raise Exception("diagram not supported")
+            fret_values = []
+            for i in range(7 if complete else 6):
+                fret_values.append(self.long())
 
     def load_note(self, beat, string):
         note = GTPNote()
