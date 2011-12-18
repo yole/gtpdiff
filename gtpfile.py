@@ -9,6 +9,8 @@ class GTPNote:
         self.fret = None
         self.string = None
         self.duration = None
+        self.hammer = False
+        self.slide = False
 
     def __str__(self):
         result = "note("
