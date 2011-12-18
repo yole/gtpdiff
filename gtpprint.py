@@ -21,7 +21,7 @@ def print_string_in_bar(bar, string, min_duration):
         duration_delta = min_duration - beat.duration
         extra_dashes = 2 ** duration_delta
         note = beat.note_at_string(string)
-        if note:
+        if note and note.fret is not None:
             result += "%d" % note.fret + effect_character(note, bar, i, string)
         else:
             result += "--"

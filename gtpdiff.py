@@ -76,13 +76,15 @@ f2 = open(args[1], "rb")
 loader = loader_for_file(f2)
 gtp2 = loader.load(f2)
 
-print "Tracks in f1:"
+print "Tracks in %s:" % args[0]
 for t in gtp1.tracks:
     print t.name
+print "Bars in %s: %d" % (args[0], len(gtp1.tracks[0].bars))
 
-print "Tracks in f2:"
+print "Tracks in %s:" % args[1]
 for t2 in gtp2.tracks:
     print t2.name
+print "Bars in %s: %d" % (args[1], len(gtp2.tracks[0].bars))
 
 if options.track1:
     track1 = gtp1.find_track(options.track1)
@@ -93,6 +95,10 @@ if options.track2:
     track2 = gtp2.find_track(options.track2)
 else:
     track2 = gtp2.tracks[0]
+if len(track1.bars) != len(track2.bars):
+    print "Number of bars is different, cannot proceed"
+    sys.exit(1)
+
 comparator = GTPTrackComparator(track1, track2)
 for index, bar1, bar2 in comparator.compare_tracks():
     print "Difference in bar %d" % index
