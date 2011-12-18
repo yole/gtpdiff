@@ -47,6 +47,7 @@ class GTPTrack:
     def __init__(self):
         self.bars = []
         self.strings = 0
+        self.string_pitches = []
 
 class GTPFile:
     def __init__(self):
@@ -143,17 +144,25 @@ class GTPLoader:
             track = GTPTrack()
             track.name = self.string(40)
             track.strings = self.long()
-            self.file.seek(52, os.SEEK_CUR)
+            for i in range(track.strings):
+                track.string_pitches.append(self.long())
+            self.skip((7-track.strings)*4)
+            track.midi_port = self.long()
+            track.main_channel = self.long()
+            track.fx_channel = self.long()
+            track.num_frets = self.long()
+            track.capo_position = self.long()
+            track.color = self.long()
             self.result.tracks.append(track)
 
     def load_bar(self, track):
         bar = GTPBar()
         beats = self.long()
         for i in range(beats):
-            self.load_beat(bar)
+            self.load_beat(bar, track.strings)
         track.bars.append(bar)
 
-    def load_beat(self, bar):
+    def load_beat(self, bar, track_strings):
         beat = GTPBeat()
         bar.beats.append(beat)
         beat_type = self.byte()
@@ -175,7 +184,7 @@ class GTPLoader:
         strings = self.byte()
         for string in range(8):
             if strings & (1 << string):
-                self.load_note(beat, string)
+                self.load_note(beat, track_strings-string)
 
     def load_beat_special_effect(self, beat):
         effect = self.byte()

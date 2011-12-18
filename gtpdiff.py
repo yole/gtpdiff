@@ -6,10 +6,33 @@ class GTPTrackComparator:
     def __init__(self, track1, track2):
         self.track1 = track1
         self.track2 = track2
+        self.ignore_fingerings = True
+
+    def normalize(self, fret, string, track):
+        """
+        :type fret: int
+        :type string: int
+        :type track: GTPTrack
+        """
+        while string > 0:
+            pitch_diff = track.string_pitches[string] - track.string_pitches[string-1]
+            if pitch_diff >= fret:
+                string -= 1
+                fret -= pitch_diff
+            else:
+                break
+        return fret, string
 
     def notes_equal(self, note1, note2):
-        if note1.fret != note2.fret or note1.string != note2.string or note1.duration != note2.duration:
+        if note1.duration != note2.duration:
             return False
+        if note1.fret != note2.fret or note1.string != note2.string:
+            if self.ignore_fingerings:
+                fret1, string1 = self.normalize(note1.fret, note1.string, self.track1)
+                fret2, string2 = self.normalize(note2.fret, note2.string, self.track2)
+                return fret1 != fret2 or string1 != string2
+            else:
+                return False
         return True
 
     def beats_equal(self, beat1, beat2):

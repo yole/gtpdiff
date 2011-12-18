@@ -20,5 +20,5 @@ def print_bar(track, bar, min_duration=None):
     """
     if min_duration is None:
         min_duration = bar.shortest_beat()
-    for string in range(track.strings, 0, -1):
+    for string in range(track.strings):
         print_string_in_bar(bar, string, min_duration)
