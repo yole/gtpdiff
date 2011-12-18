@@ -100,10 +100,14 @@ if len(track1.bars) != len(track2.bars):
     sys.exit(1)
 
 comparator = GTPTrackComparator(track1, track2)
+differences = False
 for index, bar1, bar2 in comparator.compare_tracks():
+    differences = True
     print "Difference in bar %d" % index
     shortest_beat = max(bar1.shortest_beat(), bar2.shortest_beat())
     print_bar(track1, bar1, shortest_beat)
     print ""
     print_bar(track2, bar2, shortest_beat)
     print ""
+if not differences:
+    print "Tracks are identical"
