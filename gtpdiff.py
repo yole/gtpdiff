@@ -1,6 +1,7 @@
 from gtpfile import *
 from gtpprint import *
 import sys
+from optparse import OptionParser
 
 class GTPTrackComparator:
     def __init__(self, track1, track2):
@@ -57,11 +58,21 @@ class GTPTrackComparator:
                 yield i+1, bar1, bar2
 
 
-f1 = open(sys.argv[1], "rb")
+parser = OptionParser(usage="%prog [options] track1 track2")
+parser.add_option("-1", "--track1", help="Track to compare in first file", dest="track1")
+parser.add_option("-2", "--track2", help="Track to compare in second file", dest="track2")
+
+options, args = parser.parse_args()
+
+if len(args) != 2:
+    parser.print_help()
+    sys.exit()
+
+f1 = open(args[0], "rb")
 loader = loader_for_file(f1)
 gtp1 = loader.load(f1)
 
-f2 = open(sys.argv[2], "rb")
+f2 = open(args[1], "rb")
 loader = loader_for_file(f2)
 gtp2 = loader.load(f2)
 
@@ -73,8 +84,15 @@ print "Tracks in f2:"
 for t2 in gtp2.tracks:
     print t2.name
 
-track1 = gtp1.tracks[0]
-track2 = gtp2.tracks[0]
+if options.track1:
+    track1 = gtp1.find_track(options.track1)
+else:
+    track1 = gtp1.tracks[0]
+
+if options.track2:
+    track2 = gtp2.find_track(options.track2)
+else:
+    track2 = gtp2.tracks[0]
 comparator = GTPTrackComparator(track1, track2)
 for index, bar1, bar2 in comparator.compare_tracks():
     print "Difference in bar %d" % index

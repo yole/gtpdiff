@@ -59,6 +59,10 @@ class GTPFile:
         self.notice = []
         self.tracks = []
 
+    def find_track(self, name):
+        for t in self.tracks:
+            if t.name == name: return t
+
 class GTPLoader:
     def load(self, f):
         self.file = f
@@ -277,6 +281,10 @@ class GTPLoader:
         duration = self.byte()
 
 def loader_for_file(f):
+    """
+    :type f:
+    :rtype: GTPLoader
+    """
     signature = read_pstring(f)
     return GTPLoader()
 
