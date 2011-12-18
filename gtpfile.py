@@ -64,6 +64,7 @@ class GTPFile:
         for t in self.tracks:
             if t.name == name: return t
 
+
 class GTPLoader:
     def load(self, f):
         self.file = f
@@ -123,7 +124,11 @@ class GTPLoader:
         result.triplet_feel = self.byte()
         self.load_lyrics()
         result.tempo = self.long()
-        f.seek(4+64*12, os.SEEK_CUR)
+        self.load_header2()
+        f.seek(64*12, os.SEEK_CUR)
+
+    def load_header2(self):
+        self.skip(4)
 
     def load_lyrics(self):
         pass
@@ -144,6 +149,7 @@ class GTPLoader:
                 marker_color = self.long()
             if flags & 64:
                 key = self.byte()
+                k2 = self.byte()
 
     def load_track_info(self, track_count):
         for i in range(track_count):
@@ -185,7 +191,7 @@ class GTPLoader:
         if beat_type & 4:
             beat.text = self.long_string()
         if beat_type & 8:
-            self.load_beat_special_effect(beat)
+            self.load_beat_effect(beat)
         if beat_type & 16:
             self.load_mix_table_change(beat)
         strings = self.byte()
@@ -193,8 +199,7 @@ class GTPLoader:
             if strings & (1 << string):
                 self.load_note(beat, track_strings-string)
 
-    def load_beat_special_effect(self, beat):
-        effect = self.byte()
+    def load_beat_effect1(self, beat, effect):
         if effect & 1:
             beat.vibrato = True
         if effect & 2:
@@ -206,7 +211,12 @@ class GTPLoader:
         if effect & 32:
             self.load_effect32(beat)
         if effect & 64:
-            raise Exception("unsupported effect")
+            beat.downstroke_duration = self.byte()
+            beat.upstroke_duration = self.byte()
+
+    def load_beat_effect(self, beat):
+        effect = self.byte()
+        self.load_beat_effect1(beat, effect)
 
     def load_effect32(self, beat):
         unknown = self.byte()
@@ -257,14 +267,17 @@ class GTPLoader:
             note.left_hand_finger = self.byte()
             note.right_hand_finger = self.byte()
         if flag & 8:
-            self.load_effect(note)
+            self.load_note_effect(note)
 
         beat.notes.append(note)
 
-    def load_effect(self, note):
+    def load_note_effect(self, note):
         type = self.byte()
+        self.load_note_effect1(note, type)
+
+    def load_note_effect1(self, note, type):
         if type & 1:
-            self.load_bend(note)
+            self.load_bend()
         if type & 2:
             note.hammer = True
         if type & 4:
@@ -274,7 +287,7 @@ class GTPLoader:
         if type & 16:
             self.load_grace_note(note)
 
-    def load_bend(self, note):
+    def load_bend(self):
         bend_type = self.byte()
         bend_value = self.long()
         points = self.long()
@@ -289,11 +302,93 @@ class GTPLoader:
         transition = self.byte()
         duration = self.byte()
 
+
+class GP4Loader(GTPLoader):
+    def load_lyrics(self):
+        track_no = self.long()
+        for i in range(5):
+            bar_no = self.long()
+            lyrics_line_length = self.long()
+            lyrics_line = self.file.read(lyrics_line_length)
+
+    def load_header2(self):
+        self.skip(5)
+
+    def load_beat_effect(self, beat):
+        effect = self.byte()
+        effect2 = self.byte()
+        self.load_beat_effect1(beat, effect)
+        if effect2 & 2:
+            beat.pickstroke_direction = self.byte()
+        if effect2 & 4:
+            self.load_bend()
+
+    def load_effect32(self, beat):
+        beat.stroke_effect = self.byte()
+
+    def load_mix_table_change(self, beat):
+        GTPLoader.load_mix_table_change(self, beat)
+        all_tracks_flag = self.byte()
+
+    def load_note_effect(self, note):
+        effect = self.byte()
+        effect2 = self.byte()
+        self.load_note_effect1(note, effect)
+        if effect2 & 1:
+            note.staccato = True
+        if effect2 & 2:
+            note.palm_mute = True
+        if effect2 & 4:
+            note.tremolo_picking = self.byte()
+        if effect2 & 8:
+            note.slide_effect = self.byte()
+        if effect2 & 16:
+            note.harmonic = self.byte()
+        if effect2 & 32:
+            note.trill_to_fret = self.byte()
+            note.trill_frequency = self.byte()
+        if effect2 & 64:
+            note.vibrato = True
+
+    def load_chord(self):
+        type = self.byte()
+        if type != 1: raise Exception("unsupported chord type %s" % type)
+        sharp = self.byte()
+        self.skip(3)
+        root = self.byte()
+        major_minor = self.byte()
+        nine_eleven = self.byte()
+        bass = self.long()
+        dim_aug = self.long()
+        add = self.byte()
+        name = self.string(20)
+        self.skip(2)
+        fifth = self.byte()
+        ninth = self.byte()
+        eleventh = self.byte()
+        base_fret = self.long()
+        for i in range(7):
+            fret = self.long()
+        barre_count = self.byte()
+        barre_frets = self.file.read(5)
+        barre_starts = self.file.read(5)
+        barre_ends = self.file.read(5)
+        omissions = self.file.read(7)
+        self.skip(1)
+        fingering = self.file.read(7)
+        show_fingering = self.byte()
+
+
 def loader_for_file(f):
     """
     :type f:
     :rtype: GTPLoader
     """
     signature = read_pstring(f)
-    return GTPLoader()
+    if signature.startswith("FICHIER GUITAR PRO v3"):
+        return GTPLoader()
+    if signature.startswith("FICHIER GUITAR PRO v4"):
+        return GP4Loader()
+    raise Exception("Unsupported version or not a Guitar Pro file")
+
 
